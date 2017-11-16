@@ -27,6 +27,11 @@ update {
 	vars.levelInfo.Update(game);
 }
 
+// this does not work if the person has already loaded into level 0, then quits to menu and resets the timer the timer, then loads back into level 0
+start {
+	return vars.levelInfo.Current == 0;
+}
+
 split {
 	if (vars.levelInfo.Current == 37
 			&& vars.levelInfo.Old == 49) {
