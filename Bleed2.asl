@@ -3,7 +3,7 @@ state("Bleed2") {
 
 startup {
 	vars.scanTarget = new SigScanTarget(5, "8b 45 ec 8d 15 ?? ?? ?? ?? e8 ?? ?? ?? ?? 90 8d 65 f8 5e 5f 5d c3");
-	vars.splits = new int[] {8, 15, 22, 30, 37, 41};
+	vars.splits = new int[] {8, 15, 22, 30, 37, 41, 48};
 }
 
 init {
@@ -28,5 +28,11 @@ update {
 }
 
 split {
-	return vars.levelInfo.Current > vars.levelInfo.Old && ((int[]) vars.splits).Any(split => split == vars.levelInfo.Current);
+	if (vars.levelInfo.Current == 37
+			&& vars.levelInfo.Old == 49) {
+		// cutscene between Warship and Showdown has an out-of-order ID
+		return true;
+	}
+	return vars.levelInfo.Current > vars.levelInfo.Old
+		&& ((int[]) vars.splits).Contains((int) vars.levelInfo.Current);
 }
