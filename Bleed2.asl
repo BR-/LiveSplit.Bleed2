@@ -27,7 +27,7 @@ update {
 	vars.levelInfo.Update(game);
 }
 
-// this does not work if the person has already loaded into level 0, then quits to menu and resets the timer the timer, then loads back into level 0
+// this does not work if the person has already loaded into level 0, then quits to menu and resets the timer, then loads back into level 0
 start {
 	return vars.levelInfo.Current == 0;
 }
@@ -41,3 +41,12 @@ split {
 	return vars.levelInfo.Current > vars.levelInfo.Old
 		&& ((int[]) vars.splits).Contains((int) vars.levelInfo.Current);
 }
+
+// start -> IJCGameStateEngine.currentState.Old is not GameState_Playing && IJCGameStateEngine.currentState.Current is GameState_Playing
+	// and on level 0
+	// what other gamestates can interrupt? is pausing a gamestate?
+// isLoading -> IJCGameStateEngine.currentState is GameState_Intermission
+// gameTime -> IJCStatsEngine.playTime_total
+	// i don't know how this works wrt Story vs Arcade
+	// does it reset between Story runs? (probably)
+	// if not, does it count intermission time? (gotta test)
