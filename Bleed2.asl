@@ -53,12 +53,6 @@ split {
 		&& ((int[]) vars.splits).Contains((int) vars.levelInfo.Current);
 }
 
-isLoading {
-	// A1 = GameState_Playing
-	// 27F = GameState_GameOver
-	return vars.gamestateInfo.Current != 0xA1 && vars.gamestateInfo.Current != 0x27F;
-}
-
 // gameTime -> IJCStatsEngine.playTime_total
 	// i don't know how this works wrt Story vs Arcade
 	// does it reset between Story runs? (probably)
