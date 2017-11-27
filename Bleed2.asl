@@ -54,7 +54,9 @@ split {
 }
 
 isLoading {
-	return vars.gamestateInfo.Current != 0xA1;
+	// A1 = GameState_Playing
+	// 27F = GameState_GameOver
+	return vars.gamestateInfo.Current != 0xA1 && vars.gamestateInfo.Current != 0x27F;
 }
 
 // gameTime -> IJCStatsEngine.playTime_total
