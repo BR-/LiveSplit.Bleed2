@@ -36,19 +36,32 @@ init {
 		throw new Exception("init - could not find playtime sig");
 	}
 
+	// this would be neat, but there's no way to make a deeppointer as a child of another
+	// var staticRefTypeArray = new DeepPointer(((int) gamestatePtr) - ((int) game.MainModuleWow64Safe().BaseAddress) - 0x5C + 8, 25);
+	// var staticValueTypeArray = new DeepPointer("Bleed2.exe", ((int) playtimePtr) - ((int) game.MainModuleWow64Safe().BaseAddress) - 0x168, 28);
+
+	// reference type, offset 15c
 	var dp = new DeepPointer("Bleed2.exe", ((int) levelPtr) - ((int) game.MainModuleWow64Safe().BaseAddress), 0, 0x30);
 	vars.levelInfo = new MemoryWatcher<int>(dp);
 
+	// reference type, offset 494
 	dp = new DeepPointer("Bleed2.exe", ((int) gamestatePtr) - ((int) game.MainModuleWow64Safe().BaseAddress) - 0x5C + 8, 25, 0, 0, 10);
 	vars.gamestateInfo = new MemoryWatcher<short>(dp);
 
-	vars.playtimeFound = false;
-	vars.playtimePtr = new MemoryWatcher<int>(IntPtr.Subtract(playtimePtr, 0x168));
+	// value type, offset 5e4
+	dp = new DeepPointer("Bleed2.exe", ((int) playtimePtr) - ((int) game.MainModuleWow64Safe().BaseAddress) - 0x168, 28, 0);
+	vars.playtimeInfo = new MemoryWatcher<float>(dp);
+
+	// value type, offset 3e4
+	dp = new DeepPointer("Bleed2.exe", ((int) playtimePtr) - ((int) game.MainModuleWow64Safe().BaseAddress) - 0x168, 28, -0x200);
+	vars.gamemodeInfo = new MemoryWatcher<int>(dp);
 }
 
 update {
 	vars.levelInfo.Update(game);
 	vars.gamestateInfo.Update(game);
+	vars.playtimeInfo.Update(game);
+	vars.gamemodeInfo.Update(game);
 }
 
 start {
@@ -66,18 +79,17 @@ split {
 }
 
 isLoading {
-	return true;
+	// Story, ArcadeNewGame, ArcadeFreeStyle, Challenge, Endless
+
+	if (vars.gamemodeInfo.Current == 0) {
+		// story uses RTA and doesn't use any load removals
+		return false;
+	} else {
+		// other modes use IGT
+		return true;
+	}
 }
 
 gameTime {
-	if (!vars.playtimeFound) {
-		vars.playtimePtr.Update(game);
-		if (vars.playtimePtr.Current == vars.playtimePtr.Old) {
-			return TimeSpan.FromMilliseconds(123456789);
-		}
-		var dp = new DeepPtr("Bleed2.exe", ((int) vars.playtimePtr) - ((int) game.MainModuleWow64Safe().BaseAddress), 28);
-		vars.playtime = new MemoryWatcher<float>(dp);
-	}
-	vars.playtime.Update(game);
-	return TimeSpan.FromMilliseconds(vars.playtime.Current);
+	return TimeSpan.FromMilliseconds(vars.playtimeInfo.Current);
 }
