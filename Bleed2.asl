@@ -49,6 +49,22 @@ init {
 	// GameState_Playing.GameMode: value type, offset 3e4
 	dp = new DeepPointer("Bleed2.exe", ((int) playtimePtr) - ((int) game.MainModuleWow64Safe().BaseAddress) - 0x168, 28, -0x200);
 	vars.gamemodeInfo = new MemoryWatcher<int>(dp);
+
+	// IJCGameStateEngine.currentTransition: reference type, offset 49c
+	//  -> IJCTransition.mdToken
+	dp = new DeepPointer("Bleed2.exe", ((int) gamestatePtr) - ((int) game.MainModuleWow64Safe().BaseAddress) - 0x5C + 8, 25, (0x49C - 0x494), 0, 10);
+	vars.transitionType = new MemoryWatcher<short>(dp);
+	vars.transitionType.FailAction = MemoryWatcher.ReadFailAction.SetZeroOrNull;
+
+	// IJCGameStateEngine.newState: reference type, offset 498
+	//  -> IJCGameState.mdToken
+	dp = new DeepPointer("Bleed2.exe", ((int) gamestatePtr) - ((int) game.MainModuleWow64Safe().BaseAddress) - 0x5C + 8, 25, (0x498 - 0x494), 0, 10);
+	vars.transitionNewState = new MemoryWatcher<short>(dp);
+	vars.transitionNewState.FailAction = MemoryWatcher.ReadFailAction.SetZeroOrNull;
+
+	// Transition_LevelIntro.levelNumber: value type, offset 42c
+	dp = new DeepPointer("Bleed2.exe", ((int) playtimePtr) - ((int) game.MainModuleWow64Safe().BaseAddress) - 0x168, 28, (0x42C - 0x5E4));
+	vars.transitionLevel = new MemoryWatcher<int>(dp);
 }
 
 update {
@@ -56,17 +72,34 @@ update {
 	vars.gamestateInfo.Update(game);
 	vars.playtimeInfo.Update(game);
 	vars.gamemodeInfo.Update(game);
+	vars.transitionType.Update(game);
+	vars.transitionNewState.Update(game);
+	vars.transitionLevel.Update(game);
 
 	/*
 	print("Level: " + vars.levelInfo.Current + "\n"
 	    + "State: " + vars.gamestateInfo.Current + "\n"
 	    + "Time:  " + vars.playtimeInfo.Current + "\n"
 	    + "Mode:  " + vars.gamemodeInfo.Current);
+	print("Transition Type: " + vars.transitionType.Current.ToString("X") + "\n"
+	    + "New Game State:  " + vars.transitionNewState.Current.ToString("X") + "\n"
+	    + "Next Level:      " + vars.transitionLevel.Current);
 	*/
 }
 
 start {
-	return vars.gamestateInfo.Old != 0xA1 && vars.gamestateInfo.Current == 0xA1 && vars.levelInfo.Current == 0;
+	if (vars.gamemodeInfo.Current == 0) {
+		// story mode starts when the difficulty is clicked
+		// Transition_LevelIntro = 0x135
+		// GameState_Playing = 0xA1
+		// Only start timer on first mission = 0
+		return vars.transitionType.Current == 0x135 && vars.transitionNewState.Current == 0xA1 && vars.transitionLevel == 0;
+	} else {
+		// other modes start when the game starts
+		// GameState_Playing = 0xA1
+		// Only start timer on first level = 0
+		return vars.gamestateInfo.Old != 0xA1 && vars.gamestateInfo.Current == 0xA1 && vars.levelInfo.Current == 0;
+	}
 }
 
 split {
