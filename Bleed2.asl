@@ -93,7 +93,7 @@ start {
 		// Transition_LevelIntro = 0x135
 		// GameState_Playing = 0xA1
 		// Only start timer on first mission = 0
-		return vars.transitionType.Current == 0x135 && vars.transitionNewState.Current == 0xA1 && vars.transitionLevel == 0;
+		return vars.transitionType.Current == 0x135 && vars.transitionNewState.Current == 0xA1 && vars.transitionLevel.Current == 0;
 	} else {
 		// other modes start when the game starts
 		// GameState_Playing = 0xA1
