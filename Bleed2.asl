@@ -5,6 +5,7 @@ startup {
 	vars.gamestateScanTarget = new SigScanTarget(0, "00 02 00 00 0c 00 00 00 88 05 05 02 04 00 00 00");	// method table header for Bleed_II.IJCGameStateEngine
 	vars.playtimeScanTarget = new SigScanTarget(0, "00 02 00 00 0c 00 00 00 88 05 a6 02 04 00 00 00");	// method table header for Bleed_II.IJCStatsEngine
 	vars.splits = new int[] {8, 15, 22, 30, 37, 41, 48};
+	vars.weirdStart = false;
 }
 
 init {
@@ -89,12 +90,26 @@ update {
 
 start {
 	if (vars.gamemodeInfo.Current == 0) {
+		// the first time we start playing Arcade, the transition of GameState_Playing.GameMode from Story to Arcade is late by one cycle
+		// this adds an extra grace period
+		if (vars.gamestateInfo.Old != 0xA1 && vars.gamestateInfo.Current == 0xA1 && vars.levelInfo.Current == 0) {
+			vars.weirdStart = true;
+		}
 		// story mode starts when the difficulty is clicked
 		// Transition_LevelIntro = 0x135
 		// GameState_Playing = 0xA1
 		// Only start timer on first mission = 0
-		return vars.transitionType.Current == 0x135 && vars.transitionNewState.Current == 0xA1 && vars.transitionLevel.Current == 0;
+		var retval = vars.transitionType.Current == 0x135 && vars.transitionNewState.Current == 0xA1 && vars.transitionLevel.Current == 0;
+		if (retval) {
+			vars.weirdStart = false;
+		}
+		return retval;
 	} else {
+		if (vars.weirdStart && vars.gamemodeInfo.Old == 0 && vars.gamestateInfo.Current == 0xA1 && vars.levelInfo.Current == 0) {
+			vars.weirdStart = false;
+			return true;
+		}
+		vars.weirdStart = false;
 		// other modes start when the game starts
 		// GameState_Playing = 0xA1
 		// Only start timer on first level = 0
