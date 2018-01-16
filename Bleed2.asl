@@ -2,10 +2,11 @@ state("Bleed2") {
 }
 
 startup {
-	vars.gamestateScanTarget = new SigScanTarget(0, "00 02 00 00 0c 00 00 00 88 05 05 02 04 00 00 00");	// method table header for Bleed_II.IJCGameStateEngine
-	vars.playtimeScanTarget = new SigScanTarget(0, "00 02 00 00 0c 00 00 00 88 05 a6 02 04 00 00 00");	// method table header for Bleed_II.IJCStatsEngine
+	vars.gamestateScanTarget = new SigScanTarget(0, "00 02 00 00 0c 00 00 00 88 05 76 00 04 00 00 00");	// method table header for Bleed_II.IJCGameStateEngine
+	vars.playtimeScanTarget = new SigScanTarget(0, "00 02 00 00 0c 00 00 00 88 05 1b 02 04 00 00 00");	// method table header for Bleed_II.IJCStatsEngine
 	vars.splits = new int[] {8, 15, 22, 30, 37, 41, 48};
 	vars.weirdStart = false;
+	//vars.printupdate = false;
 }
 
 init {
@@ -33,38 +34,38 @@ init {
 	// var staticValueTypeArray = new DeepPointer("Bleed2.exe", ((int) playtimePtr) - ((int) game.MainModuleWow64Safe().BaseAddress) - 0x168, 28);
 	DeepPointer dp;
 
-	// GameState_Playing.instance: reference type, offset 15c
-	//  -> Level.levelInfo
-	dp = new DeepPointer("Bleed2.exe", ((int) gamestatePtr) - ((int) game.MainModuleWow64Safe().BaseAddress) - 0x5C + 8, 25, (0x15C - 0x494), 0x30);
+	// GameState_Playing.CurrentLevel: reference type, offset 394
+	//  -> Level.levelInfo, offset 30
+	dp = new DeepPointer("Bleed2.exe", ((int) gamestatePtr) - ((int) game.MainModuleWow64Safe().BaseAddress) - 0x5C + 8, 0x19, (0x394 - 0xa0), 0x30);
 	vars.levelInfo = new MemoryWatcher<int>(dp);
 
-	// IJCGameStateEngine.currentState: reference type, offset 494
-	//  -> IJCGameState.mdToken
-	dp = new DeepPointer("Bleed2.exe", ((int) gamestatePtr) - ((int) game.MainModuleWow64Safe().BaseAddress) - 0x5C + 8, 25, 0, 0, 10);
+	// IJCGameStateEngine.currentState: reference type, offset a0
+	//  -> IJCGameState.mdToken, offset a
+	dp = new DeepPointer("Bleed2.exe", ((int) gamestatePtr) - ((int) game.MainModuleWow64Safe().BaseAddress) - 0x5C + 8, 0x19, (0xa0 - 0xa0), 0, 0xa);
 	vars.gamestateInfo = new MemoryWatcher<short>(dp);
 
-	// IJCStatsEngine.playTime_total: value type, offset 5e4
-	dp = new DeepPointer("Bleed2.exe", ((int) playtimePtr) - ((int) game.MainModuleWow64Safe().BaseAddress) - 0x168, 28, 0);
+	// IJCStatsEngine.playTime_total: value type, offset 4f0
+	dp = new DeepPointer("Bleed2.exe", ((int) playtimePtr) - ((int) game.MainModuleWow64Safe().BaseAddress) - 0x168, 0x1C, (0x4f0 - 0x4f0));
 	vars.playtimeInfo = new MemoryWatcher<float>(dp);
 
-	// GameState_Playing.GameMode: value type, offset 3e4
-	dp = new DeepPointer("Bleed2.exe", ((int) playtimePtr) - ((int) game.MainModuleWow64Safe().BaseAddress) - 0x168, 28, -0x200);
+	// GameState_Playing.GameMode: value type, offset 4b4
+	dp = new DeepPointer("Bleed2.exe", ((int) playtimePtr) - ((int) game.MainModuleWow64Safe().BaseAddress) - 0x168, 0x1C, (0x4b4 - 0x4f0));
 	vars.gamemodeInfo = new MemoryWatcher<int>(dp);
 
-	// IJCGameStateEngine.currentTransition: reference type, offset 49c
-	//  -> IJCTransition.mdToken
-	dp = new DeepPointer("Bleed2.exe", ((int) gamestatePtr) - ((int) game.MainModuleWow64Safe().BaseAddress) - 0x5C + 8, 25, (0x49C - 0x494), 0, 10);
+	// IJCGameStateEngine.currentTransition: reference type, offset a8
+	//  -> IJCTransition.mdToken, offset a
+	dp = new DeepPointer("Bleed2.exe", ((int) gamestatePtr) - ((int) game.MainModuleWow64Safe().BaseAddress) - 0x5C + 8, 0x19, (0xa8 - 0xa0), 0, 0xa);
 	vars.transitionType = new MemoryWatcher<short>(dp);
 	vars.transitionType.FailAction = MemoryWatcher.ReadFailAction.SetZeroOrNull;
 
-	// IJCGameStateEngine.newState: reference type, offset 498
-	//  -> IJCGameState.mdToken
-	dp = new DeepPointer("Bleed2.exe", ((int) gamestatePtr) - ((int) game.MainModuleWow64Safe().BaseAddress) - 0x5C + 8, 25, (0x498 - 0x494), 0, 10);
+	// IJCGameStateEngine.newState: reference type, offset a4
+	//  -> IJCGameState.mdToken, offset a
+	dp = new DeepPointer("Bleed2.exe", ((int) gamestatePtr) - ((int) game.MainModuleWow64Safe().BaseAddress) - 0x5C + 8, 0x19, (0xa4 - 0xa0), 0, 0xa);
 	vars.transitionNewState = new MemoryWatcher<short>(dp);
 	vars.transitionNewState.FailAction = MemoryWatcher.ReadFailAction.SetZeroOrNull;
 
-	// Transition_LevelIntro.levelNumber: value type, offset 42c
-	dp = new DeepPointer("Bleed2.exe", ((int) playtimePtr) - ((int) game.MainModuleWow64Safe().BaseAddress) - 0x168, 28, (0x42C - 0x5E4));
+	// Transition_LevelIntro.levelNumber: value type, offset 50c
+	dp = new DeepPointer("Bleed2.exe", ((int) playtimePtr) - ((int) game.MainModuleWow64Safe().BaseAddress) - 0x168, 0x1C, (0x50c - 0xa0));
 	vars.transitionLevel = new MemoryWatcher<int>(dp);
 }
 
@@ -78,6 +79,23 @@ update {
 	vars.transitionLevel.Update(game);
 
 	/*
+	if (vars.printupdate) {
+		print("next update tick!");
+		vars.printupdate = false;
+	}
+	if (vars.gamemodeInfo.Old != vars.gamemodeInfo.Current) {
+		print("Gamemode: " + vars.gamemodeInfo.Old.ToString() + "->" + vars.gamemodeInfo.Current.ToString());
+		vars.printupdate = true;
+	}
+	if (vars.gamestateInfo.Old != vars.gamestateInfo.Current) {
+		print("GameState: " + vars.gamestateInfo.Old.ToString() + "->" + vars.gamestateInfo.Current.ToString());
+		vars.printupdate = true;
+	}
+	if (vars.levelInfo.Old != vars.levelInfo.Current) {
+		print("Level: " + vars.levelInfo.Old.ToString() + "->" + vars.levelInfo.Current.ToString());
+		vars.printupdate = true;
+	}
+
 	print("Level: " + vars.levelInfo.Current + "\n"
 	    + "State: " + vars.gamestateInfo.Current + "\n"
 	    + "Time:  " + vars.playtimeInfo.Current + "\n"
@@ -92,28 +110,28 @@ start {
 	if (vars.gamemodeInfo.Current == 0) {
 		// the first time we start playing Arcade, the transition of GameState_Playing.GameMode from Story to Arcade is late by one cycle
 		// this adds an extra grace period
-		if (vars.gamestateInfo.Old != 0xA1 && vars.gamestateInfo.Current == 0xA1 && vars.levelInfo.Current == 0) {
+		if (vars.gamestateInfo.Old != 0x1B3 && vars.gamestateInfo.Current == 0x1B3 && vars.levelInfo.Current == 0) {
 			vars.weirdStart = true;
 		}
 		// story mode starts when the difficulty is clicked
-		// Transition_LevelIntro = 0x135
-		// GameState_Playing = 0xA1
+		// Transition_LevelIntro = 0x21E
+		// GameState_Playing = 0x1B3
 		// Only start timer on first mission = 0
-		var retval = vars.transitionType.Current == 0x135 && vars.transitionNewState.Current == 0xA1 && vars.transitionLevel.Current == 0;
+		var retval = vars.transitionType.Current == 0x21E && vars.transitionNewState.Current == 0x1B3 && vars.transitionLevel.Current == 0;
 		if (retval) {
 			vars.weirdStart = false;
 		}
 		return retval;
 	} else {
-		if (vars.weirdStart && vars.gamemodeInfo.Old == 0 && vars.gamestateInfo.Current == 0xA1 && vars.levelInfo.Current == 0) {
+		if (vars.weirdStart && vars.gamemodeInfo.Old == 0 && vars.gamestateInfo.Current == 0x1B3 && vars.levelInfo.Current == 0) {
 			vars.weirdStart = false;
 			return true;
 		}
 		vars.weirdStart = false;
 		// other modes start when the game starts
-		// GameState_Playing = 0xA1
+		// GameState_Playing = 0x1B3
 		// Only start timer on first level = 0
-		return vars.gamestateInfo.Old != 0xA1 && vars.gamestateInfo.Current == 0xA1 && vars.levelInfo.Current == 0;
+		return vars.gamestateInfo.Old != 0x1B3 && vars.gamestateInfo.Current == 0x1B3 && vars.levelInfo.Current == 0;
 	}
 }
 
