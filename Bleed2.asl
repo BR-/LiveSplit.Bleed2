@@ -2,9 +2,35 @@ state("Bleed2") {
 }
 
 startup {
-	vars.gamestateScanTarget = new SigScanTarget(0, "00 02 00 00 0c 00 00 00 88 05 76 00 04 00 00 00");	// method table header for Bleed_II.IJCGameStateEngine
-	vars.playtimeScanTarget = new SigScanTarget(0, "00 02 00 00 0c 00 00 00 88 05 1b 02 04 00 00 00");	// method table header for Bleed_II.IJCStatsEngine
-	vars.splits = new int[] {8, 15, 22, 30, 37, 41, 48};
+	vars.gamestateScanTarget = new SigScanTarget(0, "00 02 00 00 0C 00 00 00 88 05 49 02 04 00 00 00");	// method table header for Bleed_II.IJCGameStateEngine
+	vars.gamestateMethodOffset = - 0x5C + 8;
+	vars.gamestateAsmOffset = 0x19;
+	vars.gamestateHeapOffset = 0x500;
+
+	vars.playtimeScanTarget = new SigScanTarget(0, "00 02 00 00 0C 00 00 00 88 05 05 03 04 00 00 00");	// method table header for Bleed_II.IJCStatsEngine
+	vars.playtimeMethodOffset = - 0x170 + 8;
+	vars.playtimeAsmOffset = 0x1C;
+	vars.playtimeHeapOffset = 0x6A4;
+
+	vars.GameState_Playing__CurrentLevel = 0x18C;
+	vars.Level__levelInfo = 0x30;
+
+	vars.IJCGameStateEngine_currentState = 0x500;
+
+	vars.IJCStatsEngine__playTime_total = 0x6A4;
+
+	vars.GameState_Playing__GameMode = 0x474;
+
+	vars.IJCGameStateEngine__currentTransition = 0x508;
+
+	vars.IJCGameStateEngine__newState = 0x504;
+
+	vars.Transition_LevelIntro__levelNumber = 0x4BC;
+
+	vars.GameState_Playing__mdToken = 0xB8;
+	vars.Transition_LevelIntro__mdToken = 0x162;
+
+	vars.splits = new int[] {8, 15, 22, 30, 37, 41, 53};
 	vars.weirdStart = false;
 	//vars.printupdate = false;
 }
@@ -29,51 +55,40 @@ init {
 		throw new Exception("init - could not find playtime sig");
 	}
 
-	// this would be neat, but there's no way to make a deeppointer as a child of another
-	// var staticRefTypeArray = new DeepPointer(((int) gamestatePtr) - ((int) game.MainModuleWow64Safe().BaseAddress) - 0x5C + 8, 25);
-	// var staticValueTypeArray = new DeepPointer("Bleed2.exe", ((int) playtimePtr) - ((int) game.MainModuleWow64Safe().BaseAddress) - 0x168, 28);
 	DeepPointer dp;
 
-	// here's how we're getting our offsets:
-	// scanPtr points to head of methodtable
-	// scanPtr - 0x5C+8 points to the getter function call
-	// 0x19 points to the [mov] argument (something in static heap)
-	// the heap we got is at 0xA0, the heap we want is 0x394, so (0x394-0xA0) is the offset we need
-	// now we have a pointer to the object in CurrentLevel
-	// 0x30 is levelInfo
-
-	// GameState_Playing.CurrentLevel: reference type, offset 394
-	//  -> Level.levelInfo, offset 30
-	dp = new DeepPointer("Bleed2.exe", ((int) gamestatePtr) - ((int) game.MainModuleWow64Safe().BaseAddress) - 0x5C + 8, 0x19, (0x394 - 0xa0), 0x30);
+	// GameState_Playing.CurrentLevel: reference type
+	//  -> Level.levelInfo
+	dp = new DeepPointer("Bleed2.exe", ((int) gamestatePtr) - ((int) game.MainModuleWow64Safe().BaseAddress) + vars.gamestateMethodOffset, vars.gamestateAsmOffset, (vars.GameState_Playing__CurrentLevel - vars.gamestateHeapOffset), vars.Level__levelInfo);
 	vars.levelInfo = new MemoryWatcher<int>(dp);
 
-	// IJCGameStateEngine.currentState: reference type, offset a0
-	//  -> IJCGameState.mdToken, offset a
-	dp = new DeepPointer("Bleed2.exe", ((int) gamestatePtr) - ((int) game.MainModuleWow64Safe().BaseAddress) - 0x5C + 8, 0x19, (0xa0 - 0xa0), 0, 0xa);
+	// IJCGameStateEngine.currentState: reference type
+	//  -> IJCGameState.mdToken
+	dp = new DeepPointer("Bleed2.exe", ((int) gamestatePtr) - ((int) game.MainModuleWow64Safe().BaseAddress) + vars.gamestateMethodOffset, vars.gamestateAsmOffset, (vars.IJCGameStateEngine_currentState - vars.gamestateHeapOffset), 0, 10);
 	vars.gamestateInfo = new MemoryWatcher<short>(dp);
 
-	// IJCStatsEngine.playTime_total: value type, offset 4f0
-	dp = new DeepPointer("Bleed2.exe", ((int) playtimePtr) - ((int) game.MainModuleWow64Safe().BaseAddress) - 0x168, 0x1C, (0x4f0 - 0x4f0));
+	// IJCStatsEngine.playTime_total: value type
+	dp = new DeepPointer("Bleed2.exe", ((int) playtimePtr) - ((int) game.MainModuleWow64Safe().BaseAddress) + vars.playtimeMethodOffset, vars.playtimeAsmOffset, (vars.IJCStatsEngine__playTime_total - vars.playtimeHeapOffset));
 	vars.playtimeInfo = new MemoryWatcher<float>(dp);
 
-	// GameState_Playing.GameMode: value type, offset 4b4
-	dp = new DeepPointer("Bleed2.exe", ((int) playtimePtr) - ((int) game.MainModuleWow64Safe().BaseAddress) - 0x168, 0x1C, (0x4b4 - 0x4f0));
+	// GameState_Playing.GameMode: value type
+	dp = new DeepPointer("Bleed2.exe", ((int) playtimePtr) - ((int) game.MainModuleWow64Safe().BaseAddress) + vars.playtimeMethodOffset, vars.playtimeAsmOffset, (vars.GameState_Playing__GameMode - vars.playtimeHeapOffset));
 	vars.gamemodeInfo = new MemoryWatcher<int>(dp);
 
-	// IJCGameStateEngine.currentTransition: reference type, offset a8
-	//  -> IJCTransition.mdToken, offset a
-	dp = new DeepPointer("Bleed2.exe", ((int) gamestatePtr) - ((int) game.MainModuleWow64Safe().BaseAddress) - 0x5C + 8, 0x19, (0xa8 - 0xa0), 0, 0xa);
+	// IJCGameStateEngine.currentTransition: reference type
+	//  -> IJCTransition.mdToken
+	dp = new DeepPointer("Bleed2.exe", ((int) gamestatePtr) - ((int) game.MainModuleWow64Safe().BaseAddress) + vars.gamestateMethodOffset, vars.gamestateAsmOffset, (vars.IJCGameStateEngine__currentTransition - vars.gamestateHeapOffset), 0, 10);
 	vars.transitionType = new MemoryWatcher<short>(dp);
 	vars.transitionType.FailAction = MemoryWatcher.ReadFailAction.SetZeroOrNull;
 
-	// IJCGameStateEngine.newState: reference type, offset a4
-	//  -> IJCGameState.mdToken, offset a
-	dp = new DeepPointer("Bleed2.exe", ((int) gamestatePtr) - ((int) game.MainModuleWow64Safe().BaseAddress) - 0x5C + 8, 0x19, (0xa4 - 0xa0), 0, 0xa);
+	// IJCGameStateEngine.newState: reference type
+	//  -> IJCGameState.mdToken
+	dp = new DeepPointer("Bleed2.exe", ((int) gamestatePtr) - ((int) game.MainModuleWow64Safe().BaseAddress) + vars.gamestateMethodOffset, vars.gamestateAsmOffset, (vars.IJCGameStateEngine__newState - vars.gamestateHeapOffset), 0, 10);
 	vars.transitionNewState = new MemoryWatcher<short>(dp);
 	vars.transitionNewState.FailAction = MemoryWatcher.ReadFailAction.SetZeroOrNull;
 
-	// Transition_LevelIntro.levelNumber: value type, offset 50c
-	dp = new DeepPointer("Bleed2.exe", ((int) playtimePtr) - ((int) game.MainModuleWow64Safe().BaseAddress) - 0x168, 0x1C, (0x50c - 0xa0));
+	// Transition_LevelIntro.levelNumber: value type
+	dp = new DeepPointer("Bleed2.exe", ((int) playtimePtr) - ((int) game.MainModuleWow64Safe().BaseAddress) + vars.playtimeMethodOffset, vars.playtimeAsmOffset, (vars.Transition_LevelIntro__levelNumber - vars.playtimeHeapOffset));
 	vars.transitionLevel = new MemoryWatcher<int>(dp);
 }
 
@@ -118,34 +133,29 @@ start {
 	if (vars.gamemodeInfo.Current == 0) {
 		// the first time we start playing Arcade, the transition of GameState_Playing.GameMode from Story to Arcade is late by one cycle
 		// this adds an extra grace period
-		if (vars.gamestateInfo.Old != 0x1B3 && vars.gamestateInfo.Current == 0x1B3 && vars.levelInfo.Current == 0) {
+		if (vars.gamestateInfo.Old != vars.GameState_Playing__mdToken && vars.gamestateInfo.Current == vars.GameState_Playing__mdToken && vars.levelInfo.Current == 0) {
 			vars.weirdStart = true;
 		}
 		// story mode starts when the difficulty is clicked
-		// Transition_LevelIntro = 0x21E
-		// GameState_Playing = 0x1B3
-		// Only start timer on first mission = 0
-		var retval = vars.transitionType.Current == 0x21E && vars.transitionNewState.Current == 0x1B3 && vars.transitionLevel.Current == 0;
+		var retval = vars.transitionType.Current == vars.Transition_LevelIntro__mdToken && vars.transitionNewState.Current == vars.GameState_Playing__mdToken && vars.transitionLevel.Current == 0;
 		if (retval) {
 			vars.weirdStart = false;
 		}
 		return retval;
 	} else {
-		if (vars.weirdStart && vars.gamemodeInfo.Old == 0 && vars.gamestateInfo.Current == 0x1B3 && vars.levelInfo.Current == 0) {
+		if (vars.weirdStart && vars.gamemodeInfo.Old == 0 && vars.gamestateInfo.Current == vars.GameState_Playing__mdToken && vars.levelInfo.Current == 0) {
 			vars.weirdStart = false;
 			return true;
 		}
 		vars.weirdStart = false;
 		// other modes start when the game starts
-		// GameState_Playing = 0x1B3
-		// Only start timer on first level = 0
-		return vars.gamestateInfo.Old != 0x1B3 && vars.gamestateInfo.Current == 0x1B3 && vars.levelInfo.Current == 0;
+		return vars.gamestateInfo.Old != vars.GameState_Playing__mdToken && vars.gamestateInfo.Current == vars.GameState_Playing__mdToken && vars.levelInfo.Current == 0;
 	}
 }
 
 split {
 	if (vars.levelInfo.Current == 37
-			&& vars.levelInfo.Old == 49) {
+			&& vars.levelInfo.Old == 54) {
 		// cutscene between Warship and Showdown has an out-of-order ID
 		return true;
 	}
