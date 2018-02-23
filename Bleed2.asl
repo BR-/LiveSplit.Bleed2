@@ -34,6 +34,14 @@ init {
 	// var staticValueTypeArray = new DeepPointer("Bleed2.exe", ((int) playtimePtr) - ((int) game.MainModuleWow64Safe().BaseAddress) - 0x168, 28);
 	DeepPointer dp;
 
+	// here's how we're getting our offsets:
+	// scanPtr points to head of methodtable
+	// scanPtr - 0x5C+8 points to the getter function call
+	// 0x19 points to the [mov] argument (something in static heap)
+	// the heap we got is at 0xA0, the heap we want is 0x394, so (0x394-0xA0) is the offset we need
+	// now we have a pointer to the object in CurrentLevel
+	// 0x30 is levelInfo
+
 	// GameState_Playing.CurrentLevel: reference type, offset 394
 	//  -> Level.levelInfo, offset 30
 	dp = new DeepPointer("Bleed2.exe", ((int) gamestatePtr) - ((int) game.MainModuleWow64Safe().BaseAddress) - 0x5C + 8, 0x19, (0x394 - 0xa0), 0x30);
