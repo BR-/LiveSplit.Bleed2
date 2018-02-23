@@ -27,10 +27,18 @@ startup {
 
 	vars.Transition_LevelIntro__levelNumber = 0x4BC;
 
+	vars.IJCGameState__currentMiniState = 0x4;
+
 	vars.GameState_Playing__mdToken = 0xB8;
 	vars.Transition_LevelIntro__mdToken = 0x162;
+	vars.MiniGameState_LevelClear__mdToken = 0x2D2;
+	vars.GameState_ArcadeClear__mdToken = 0xB;
+	vars.GameState_ReplayResult__mdToken = 0x359;
+	vars.GameState_EndlessClear__mdToken = 0x2F7;
 
-	vars.splits = new int[] {8, 15, 22, 30, 37, 41, 53};
+	vars.splits = new int[] {8, 15, 22, 30, 37, 41};
+	vars.highestLevel = 41;
+
 	vars.weirdStart = false;
 	//vars.printupdate = false;
 }
@@ -90,6 +98,12 @@ init {
 	// Transition_LevelIntro.levelNumber: value type
 	dp = new DeepPointer("Bleed2.exe", ((int) playtimePtr) - ((int) game.MainModuleWow64Safe().BaseAddress) + vars.playtimeMethodOffset, vars.playtimeAsmOffset, (vars.Transition_LevelIntro__levelNumber - vars.playtimeHeapOffset));
 	vars.transitionLevel = new MemoryWatcher<int>(dp);
+
+	// IJCGameStateEngine.currentState: reference type
+	//  -> IJCGameState.currentMiniState
+	dp = new DeepPointer("Bleed2.exe", ((int) gamestatePtr) - ((int) game.MainModuleWow64Safe().BaseAddress) + vars.gamestateMethodOffset, vars.gamestateAsmOffset, (vars.IJCGameStateEngine_currentState - vars.gamestateHeapOffset), vars.IJCGameState__currentMiniState, 0, 10);
+	vars.currentMiniState = new MemoryWatcher<short>(dp);
+	vars.currentMiniState.FailAction = MemoryWatcher.ReadFailAction.SetZeroOrNull;
 }
 
 update {
@@ -100,6 +114,7 @@ update {
 	vars.transitionType.Update(game);
 	vars.transitionNewState.Update(game);
 	vars.transitionLevel.Update(game);
+	vars.currentMiniState.Update(game);
 
 	/*
 	if (vars.printupdate) {
@@ -154,6 +169,17 @@ start {
 }
 
 split {
+	if (vars.levelInfo.Current > vars.highestLevel) {
+		if (vars.gamemodeInfo.Current == 0) {
+			// arcade ends timing on "Game Clear" text
+			return vars.currentMiniState.Current == vars.MiniGameState_LevelClear__mdToken;
+		} else {
+			// other modes end timing on their respective GameState_Clear
+			return vars.gamestateInfo.Current == vars.GameState_ArcadeClear__mdToken
+			    || vars.gamestateInfo.Current == vars.GameState_EndlessClear__mdToken
+			    || vars.gamestateInfo.Current == vars.GameState_ReplayResult__mdToken;
+		}
+	}
 	if (vars.levelInfo.Current == 37
 			&& vars.levelInfo.Old == 54) {
 		// cutscene between Warship and Showdown has an out-of-order ID
