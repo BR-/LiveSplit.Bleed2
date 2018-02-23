@@ -15,7 +15,7 @@ startup {
 	vars.GameState_Playing__CurrentLevel = 0x18C;
 	vars.Level__levelInfo = 0x30;
 
-	vars.IJCGameStateEngine_currentState = 0x500;
+	vars.IJCGameStateEngine__currentState = 0x500;
 
 	vars.IJCStatsEngine__playTime_total = 0x6A4;
 
@@ -29,6 +29,8 @@ startup {
 
 	vars.IJCGameState__currentMiniState = 0x4;
 
+	vars.IJCEndlessModeEngine__currentEnvironmentNumber = 0x704;
+
 	vars.GameState_Playing__mdToken = 0xB8;
 	vars.Transition_LevelIntro__mdToken = 0x162;
 	vars.GameState_EndlessGeneration__mdToken = 0x2F9;
@@ -39,9 +41,6 @@ startup {
 
 	vars.splits = new int[] {8, 15, 22, 30, 37, 41};
 	vars.highestLevel = 41;
-
-	vars.weirdStart = false;
-	//vars.printupdate = false;
 }
 
 init {
@@ -73,7 +72,7 @@ init {
 
 	// IJCGameStateEngine.currentState: reference type
 	//  -> IJCGameState.mdToken
-	dp = new DeepPointer("Bleed2.exe", ((int) gamestatePtr) - ((int) game.MainModuleWow64Safe().BaseAddress) + vars.gamestateMethodOffset, vars.gamestateAsmOffset, (vars.IJCGameStateEngine_currentState - vars.gamestateHeapOffset), 0, 10);
+	dp = new DeepPointer("Bleed2.exe", ((int) gamestatePtr) - ((int) game.MainModuleWow64Safe().BaseAddress) + vars.gamestateMethodOffset, vars.gamestateAsmOffset, (vars.IJCGameStateEngine__currentState - vars.gamestateHeapOffset), 0, 10);
 	vars.gamestateInfo = new MemoryWatcher<short>(dp);
 
 	// IJCStatsEngine.playTime_total: value type
@@ -102,9 +101,13 @@ init {
 
 	// IJCGameStateEngine.currentState: reference type
 	//  -> IJCGameState.currentMiniState
-	dp = new DeepPointer("Bleed2.exe", ((int) gamestatePtr) - ((int) game.MainModuleWow64Safe().BaseAddress) + vars.gamestateMethodOffset, vars.gamestateAsmOffset, (vars.IJCGameStateEngine_currentState - vars.gamestateHeapOffset), vars.IJCGameState__currentMiniState, 0, 10);
+	dp = new DeepPointer("Bleed2.exe", ((int) gamestatePtr) - ((int) game.MainModuleWow64Safe().BaseAddress) + vars.gamestateMethodOffset, vars.gamestateAsmOffset, (vars.IJCGameStateEngine__currentState - vars.gamestateHeapOffset), vars.IJCGameState__currentMiniState, 0, 10);
 	vars.currentMiniState = new MemoryWatcher<short>(dp);
 	vars.currentMiniState.FailAction = MemoryWatcher.ReadFailAction.SetZeroOrNull;
+
+	dp = new DeepPointer("Bleed2.exe", ((int) playtimePtr) - ((int) game.MainModuleWow64Safe().BaseAddress) + vars.playtimeMethodOffset, vars.playtimeAsmOffset, (vars.IJCEndlessModeEngine__currentEnvironmentNumber - vars.playtimeHeapOffset));
+	vars.currentEnvironmentNumber = new MemoryWatcher<short>(dp);
+	vars.currentEnvironmentNumber.FailAction = MemoryWatcher.ReadFailAction.SetZeroOrNull;
 }
 
 update {
@@ -116,58 +119,29 @@ update {
 	vars.transitionNewState.Update(game);
 	vars.transitionLevel.Update(game);
 	vars.currentMiniState.Update(game);
+	vars.currentEnvironmentNumber.Update(game);
+}
 
-	/*
-	if (vars.printupdate) {
-		print("next update tick!");
-		vars.printupdate = false;
+reset {
+	if (vars.gamemodeInfo.Current == 1 || vars.gamemodeInfo.Current == 2) {
+		// arcade resets when you enter the first room
+		return vars.levelInfo.Current == 0 && vars.levelInfo.Old != 0;
+	} else if (vars.gamemodeInfo.Current == 4) {
+		// endless resets when it's generating the first level
+		return vars.gamestateInfo.Current == vars.GameState_EndlessGeneration__mdToken && vars.currentEnvironmentNumber.Current == 0;
 	}
-	if (vars.gamemodeInfo.Old != vars.gamemodeInfo.Current) {
-		print("Gamemode: " + vars.gamemodeInfo.Old.ToString() + "->" + vars.gamemodeInfo.Current.ToString());
-		vars.printupdate = true;
-	}
-	if (vars.gamestateInfo.Old != vars.gamestateInfo.Current) {
-		print("GameState: " + vars.gamestateInfo.Old.ToString() + "->" + vars.gamestateInfo.Current.ToString());
-		vars.printupdate = true;
-	}
-	if (vars.levelInfo.Old != vars.levelInfo.Current) {
-		print("Level: " + vars.levelInfo.Old.ToString() + "->" + vars.levelInfo.Current.ToString());
-		vars.printupdate = true;
-	}
-
-	print("Level: " + vars.levelInfo.Current + "\n"
-	    + "State: " + vars.gamestateInfo.Current + "\n"
-	    + "Time:  " + vars.playtimeInfo.Current + "\n"
-	    + "Mode:  " + vars.gamemodeInfo.Current);
-	print("Transition Type: " + vars.transitionType.Current.ToString("X") + "\n"
-	    + "New Game State:  " + vars.transitionNewState.Current.ToString("X") + "\n"
-	    + "Next Level:      " + vars.transitionLevel.Current);
-	*/
 }
 
 start {
 	if (vars.gamestateInfo.Old == vars.GameState_EndlessGeneration__mdToken && vars.gamestateInfo.Current == vars.GameState_Playing__mdToken) {
+		// endless mode starts after EndlessGeneration finishes
 		return true;
 	} else if (vars.gamemodeInfo.Current == 0) {
-		// the first time we start playing Arcade, the transition of GameState_Playing.GameMode from Story to Arcade is late by one cycle
-		// this adds an extra grace period
-		if (vars.gamestateInfo.Old != vars.GameState_Playing__mdToken && vars.gamestateInfo.Current == vars.GameState_Playing__mdToken && vars.levelInfo.Current == 0) {
-			vars.weirdStart = true;
-		}
 		// story mode starts when the difficulty is clicked
-		var retval = vars.transitionType.Current == vars.Transition_LevelIntro__mdToken && vars.transitionNewState.Current == vars.GameState_Playing__mdToken && vars.transitionLevel.Current == 0;
-		if (retval) {
-			vars.weirdStart = false;
-		}
-		return retval;
-	} else {
-		if (vars.weirdStart && vars.gamemodeInfo.Old == 0 && vars.gamestateInfo.Current == vars.GameState_Playing__mdToken && vars.levelInfo.Current == 0) {
-			vars.weirdStart = false;
-			return true;
-		}
-		vars.weirdStart = false;
-		// other modes start when the game starts
-		return vars.gamestateInfo.Old != vars.GameState_Playing__mdToken && vars.gamestateInfo.Current == vars.GameState_Playing__mdToken && vars.levelInfo.Current == 0;
+		return vars.transitionType.Current == vars.Transition_LevelIntro__mdToken && vars.transitionNewState.Current == vars.GameState_Playing__mdToken && vars.transitionLevel.Current == 0;
+	} else if (vars.gamemodeInfo.Current == 1 || vars.gamemodeInfo.Current == 2) {
+		// arcade modes start when the game starts
+		return vars.gamestateInfo.Current == vars.GameState_Playing__mdToken && vars.levelInfo.Current == 0;
 	}
 }
 
