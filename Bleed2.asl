@@ -31,6 +31,7 @@ startup {
 
 	vars.GameState_Playing__mdToken = 0xB8;
 	vars.Transition_LevelIntro__mdToken = 0x162;
+	vars.GameState_EndlessGeneration__mdToken = 0x2F9;
 	vars.MiniGameState_LevelClear__mdToken = 0x2D2;
 	vars.GameState_ArcadeClear__mdToken = 0xB;
 	vars.GameState_ReplayResult__mdToken = 0x359;
@@ -145,7 +146,9 @@ update {
 }
 
 start {
-	if (vars.gamemodeInfo.Current == 0) {
+	if (vars.gamestateInfo.Old == vars.GameState_EndlessGeneration__mdToken && vars.gamestateInfo.Current == vars.GameState_Playing__mdToken) {
+		return true;
+	} else if (vars.gamemodeInfo.Current == 0) {
 		// the first time we start playing Arcade, the transition of GameState_Playing.GameMode from Story to Arcade is late by one cycle
 		// this adds an extra grace period
 		if (vars.gamestateInfo.Old != vars.GameState_Playing__mdToken && vars.gamestateInfo.Current == vars.GameState_Playing__mdToken && vars.levelInfo.Current == 0) {
@@ -169,14 +172,17 @@ start {
 }
 
 split {
+	if (vars.gamemodeInfo.Current == 4) {
+		return vars.gamestateInfo.Old != vars.GameState_EndlessGeneration__mdToken && vars.gamestateInfo.Current == vars.GameState_EndlessGeneration__mdToken
+		    || vars.gamestateInfo.Current == vars.GameState_EndlessClear__mdToken;
+	}
 	if (vars.levelInfo.Current > vars.highestLevel) {
 		if (vars.gamemodeInfo.Current == 0) {
 			// arcade ends timing on "Game Clear" text
 			return vars.currentMiniState.Current == vars.MiniGameState_LevelClear__mdToken;
 		} else {
-			// other modes end timing on their respective GameState_Clear
+			// other modes end timing when the gamestate changes
 			return vars.gamestateInfo.Current == vars.GameState_ArcadeClear__mdToken
-			    || vars.gamestateInfo.Current == vars.GameState_EndlessClear__mdToken
 			    || vars.gamestateInfo.Current == vars.GameState_ReplayResult__mdToken;
 		}
 	}
