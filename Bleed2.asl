@@ -122,6 +122,7 @@ update {
 	vars.currentEnvironmentNumber.Update(game);
 }
 
+/* auto-reset disabled after reports of malfunction
 reset {
 	if (vars.gamemodeInfo.Current == vars.gamemodeArcadeNewGame || vars.gamemodeInfo.Current == vars.gamemodeArcadeFreeStyle) {
 		// arcade resets when you enter the first room
@@ -131,6 +132,7 @@ reset {
 		return vars.gamestateInfo.Current == vars.GameState_EndlessGeneration__mdToken && vars.currentEnvironmentNumber.Current == vars.firstEnvironment;
 	}
 }
+*/
 
 start {
 	if (vars.gamestateInfo.Old == vars.GameState_EndlessGeneration__mdToken && vars.gamestateInfo.Current == vars.GameState_Playing__mdToken) {
